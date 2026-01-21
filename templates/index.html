@@ -50,11 +50,10 @@
             <section class="center-panel">
                 <div class="camera-container">
                     <div class="camera-feed" id="cameraFeed">
-                        <video id="videoElement" autoplay playsinline></video>
-                        <canvas id="outputCanvas" style="display: none;"></canvas>
+                        <img id="videoStream" alt="Video Stream" style="display: none; width: 100%; height: 100%; object-fit: contain;">
                         <div class="camera-placeholder" id="placeholder">
                             <div class="camera-placeholder-icon">🎥</div>
-                            <p class="camera-placeholder-text">Cliquez sur "Démarrer" pour activer la caméra</p>
+                            <p class="camera-placeholder-text">Sélectionnez un visage puis cliquez sur "Démarrer"</p>
                         </div>
                     </div>
                     
@@ -133,19 +132,19 @@
     <script>
         // ============================================================
         // DEEPFAKE MIA - JavaScript
-        // Interface Web pour Face Swap
+        // Interface Web pour Face Swap (Streaming côté serveur)
         // ============================================================
 
         // -------- Configuration --------
         const API_BASE = '';
         let selectedPlayer = null;
         let isRunning = false;
-        let videoStream = null;
+        let faceLoaded = false;
 
         // -------- Éléments DOM --------
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
-        const videoElement = document.getElementById('videoElement');
+        const videoStream = document.getElementById('videoStream');
         const placeholder = document.getElementById('placeholder');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
@@ -180,7 +179,9 @@
             card.classList.add('selected');
             selectedPlayer = card.dataset.player;
             
-            // Envoyer au serveur
+            updateStatus('Chargement du visage...', 'warning');
+            
+            // Envoyer au serveur pour charger le visage
             fetch(`${API_BASE}/api/select_face`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -188,41 +189,39 @@
             })
             .then(response => response.json())
             .then(data => {
-                console.log('Face sélectionnée:', selectedPlayer);
-                updateStatus('Visage sélectionné: ' + selectedPlayer, 'success');
+                if (data.success) {
+                    faceLoaded = true;
+                    console.log('Face chargée:', selectedPlayer);
+                    updateStatus('Visage prêt: ' + selectedPlayer, 'success');
+                } else {
+                    faceLoaded = false;
+                    updateStatus('Erreur: ' + data.error, 'error');
+                }
             })
             .catch(err => {
+                faceLoaded = false;
                 console.error('Erreur:', err);
+                updateStatus('Erreur de connexion', 'error');
             });
         }
 
-        // -------- Gestion Caméra --------
-        async function startCamera() {
-            try {
-                const constraints = {
-                    video: true,
-                    audio: false
-                };
-                
-                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoElement.srcObject = videoStream;
-                placeholder.style.display = 'none';
-                videoElement.style.display = 'block';
-                
-                return true;
-            } catch (err) {
-                console.error('Erreur caméra:', err);
-                updateStatus('Erreur: ' + err.message, 'error');
-                return false;
-            }
+        // -------- Gestion du streaming vidéo --------
+        function startVideoStream() {
+            // Afficher le flux vidéo du serveur
+            videoStream.src = `${API_BASE}/video_feed?t=${Date.now()}`;
+            videoStream.style.display = 'block';
+            placeholder.style.display = 'none';
+            
+            // Gérer les erreurs de chargement
+            videoStream.onerror = function() {
+                console.error('Erreur de streaming vidéo');
+                updateStatus('Erreur de streaming', 'error');
+            };
         }
 
-        function stopCamera() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-            videoElement.style.display = 'none';
+        function stopVideoStream() {
+            videoStream.src = '';
+            videoStream.style.display = 'none';
             placeholder.style.display = 'flex';
         }
 
@@ -238,30 +237,47 @@
                 return;
             }
             
-            const cameraStarted = await startCamera();
-            if (!cameraStarted) return;
+            if (!faceLoaded) {
+                updateStatus('Attendez le chargement du visage', 'warning');
+                return;
+            }
             
             isRunning = true;
             startBtn.disabled = true;
             stopBtn.disabled = false;
             
-            updateStatus('DeepFake en cours...', 'running');
+            updateStatus('Démarrage...', 'warning');
             
-            // Notifier le backend
+            // Démarrer le traitement côté serveur
             fetch(`${API_BASE}/api/start`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     player: selectedPlayer,
-                    camera: 'default',
                     options: getOptions()
                 })
             })
             .then(response => response.json())
             .then(data => {
-                console.log('DeepFake démarré:', data);
+                if (data.success) {
+                    console.log('DeepFake démarré:', data);
+                    updateStatus('DeepFake actif - ' + selectedPlayer, 'running');
+                    // Démarrer le streaming après que le serveur soit prêt
+                    setTimeout(startVideoStream, 500);
+                } else {
+                    updateStatus('Erreur: ' + data.error, 'error');
+                    isRunning = false;
+                    startBtn.disabled = false;
+                    stopBtn.disabled = true;
+                }
             })
-            .catch(err => console.error('Erreur:', err));
+            .catch(err => {
+                console.error('Erreur:', err);
+                updateStatus('Erreur de connexion', 'error');
+                isRunning = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+            });
         }
 
         function stopDeepfake() {
@@ -269,10 +285,10 @@
             startBtn.disabled = false;
             stopBtn.disabled = true;
             
-            stopCamera();
+            stopVideoStream();
             updateStatus('Arrêté', 'stopped');
             
-            // Notifier le backend
+            // Arrêter le traitement côté serveur
             fetch(`${API_BASE}/api/stop`, { method: 'POST' })
                 .then(response => response.json())
                 .then(data => console.log('DeepFake arrêté:', data))
@@ -328,6 +344,9 @@
                     break;
                 case 'stopped':
                     statusDot.style.background = '#9e9e9e';
+                    break;
+                case 'success':
+                    statusDot.style.background = '#4CAF50';
                     break;
                 default:
                     statusDot.style.background = '#4CAF50';

@@ -103,8 +103,8 @@ pip install -r requirements.txt
 4. **Télécharger les modèles** (si non inclus)
 
 Placez les fichiers suivants dans le dossier `models/` :
-- `inswapper_128_fp16.onnx` - [Télécharger](https://https://huggingface.co/ninjawick/webui-faceswap-unlocked/blob/main/inswapper_128_fp16.onnx)
-- `GFPGANv1.4.pth` - [Télécharger](https://https://huggingface.co/gmk123/GFPGAN/blob/main/GFPGANv1.4.pth)
+- `inswapper_128_fp16.onnx` - [Télécharger](https://huggingface.co/ninjawick/webui-faceswap-unlocked/blob/main/inswapper_128_fp16.onnx)
+- `GFPGANv1.4.pth` - [Télécharger](https://huggingface.co/gmk123/GFPGAN/blob/main/GFPGANv1.4.pth)
 
 ---
 

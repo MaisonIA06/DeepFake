@@ -23,13 +23,13 @@ many_faces = False
 map_faces = False
 color_correction = False  # New global variable for color correction toggle
 nsfw_filter = False
-video_encoder = None
-video_quality = None
+video_encoder = "libx264"
+video_quality = 18
 live_mirror = False
 live_resizable = True
-max_memory = None
-execution_providers: List[str] = []
-execution_threads = None
+max_memory = 8
+execution_providers: List[str] = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+execution_threads = 8
 headless = None
 log_level = "error"
 fp_ui: Dict[str, bool] = {"face_enhancer": False}
@@ -41,3 +41,6 @@ show_mouth_mask_box = False
 mask_feather_ratio = 8
 mask_down_size = 0.50
 mask_size = 1
+
+# Face source pour le swap en temps réel
+source_face = None

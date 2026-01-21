@@ -11,13 +11,21 @@ Puis ouvrez http://localhost:5000 dans votre navigateur.
 
 import os
 import sys
-from flask import Flask, render_template, jsonify, request, send_from_directory
+import cv2
+import threading
+import time
+import logging
+from flask import Flask, render_template, jsonify, request, send_from_directory, Response
 
 # Configuration
 from config import (
     BASE_DIR, STATIC_DIR, TEMPLATES_DIR, FACES_DIR,
     PLAYERS_LEFT, PLAYERS_RIGHT, DEFAULT_OPTIONS, FLASK_CONFIG
 )
+
+# Configuration du logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # Initialisation Flask
@@ -37,8 +45,145 @@ app.config['SECRET_KEY'] = FLASK_CONFIG['SECRET_KEY']
 app_state = {
     "selected_player": None,
     "is_running": False,
-    "options": DEFAULT_OPTIONS.copy()
+    "options": DEFAULT_OPTIONS.copy(),
+    "source_face": None,
+    "camera": None,
+    "camera_lock": threading.Lock()
 }
+
+# ============================================================
+# Initialisation des modules IA
+# ============================================================
+
+def init_ai_modules():
+    """Initialise les modules d'IA au démarrage"""
+    try:
+        import core.globals
+        # Configuration des execution providers
+        core.globals.execution_providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+        
+        logger.info("Modules IA initialisés avec succès")
+        return True
+    except Exception as e:
+        logger.error(f"Erreur lors de l'initialisation des modules IA: {e}")
+        return False
+
+# ============================================================
+# Gestion de la caméra et du face swap
+# ============================================================
+
+def get_camera():
+    """Obtient ou crée la capture vidéo"""
+    with app_state["camera_lock"]:
+        if app_state["camera"] is None or not app_state["camera"].isOpened():
+            app_state["camera"] = cv2.VideoCapture(0)
+            if app_state["camera"].isOpened():
+                app_state["camera"].set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                app_state["camera"].set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                app_state["camera"].set(cv2.CAP_PROP_FPS, 30)
+                logger.info("Caméra initialisée")
+        return app_state["camera"]
+
+def release_camera():
+    """Libère la caméra"""
+    with app_state["camera_lock"]:
+        if app_state["camera"] is not None:
+            app_state["camera"].release()
+            app_state["camera"] = None
+            logger.info("Caméra libérée")
+
+def load_source_face(player_id: str):
+    """Charge le visage source depuis l'image du joueur"""
+    try:
+        from core.face_analyser import extract_face_from_image
+        
+        face_path = os.path.join(FACES_DIR, f"{player_id}.png")
+        if not os.path.exists(face_path):
+            logger.error(f"Image non trouvée: {face_path}")
+            return None
+        
+        source_face = extract_face_from_image(face_path)
+        if source_face is None:
+            logger.error(f"Aucun visage détecté dans: {face_path}")
+            return None
+        
+        logger.info(f"Visage source chargé: {player_id}")
+        return source_face
+    except Exception as e:
+        logger.error(f"Erreur lors du chargement du visage: {e}")
+        return None
+
+def process_frame_with_swap(frame, source_face):
+    """Applique le face swap sur une frame"""
+    if frame is None or source_face is None:
+        return frame
+    
+    try:
+        from core.processors.frame.face_swapper import process_frame
+        import core.globals
+        
+        # Appliquer le face swap
+        processed = process_frame(source_face, frame)
+        
+        # Appliquer l'enhancer si activé
+        if app_state["options"].get("face_enhancer", False):
+            try:
+                from core.processors.frame.face_enhancer import process_frame_v2
+                processed = process_frame_v2(processed)
+            except Exception as e:
+                logger.warning(f"Face enhancer non disponible: {e}")
+        
+        return processed
+    except Exception as e:
+        logger.error(f"Erreur lors du traitement: {e}")
+        return frame
+
+def generate_frames():
+    """Générateur de frames pour le streaming vidéo"""
+    camera = get_camera()
+    
+    if camera is None or not camera.isOpened():
+        logger.error("Impossible d'ouvrir la caméra")
+        return
+    
+    fps_time = time.time()
+    frame_count = 0
+    fps = 0
+    
+    while app_state["is_running"]:
+        success, frame = camera.read()
+        if not success:
+            logger.warning("Impossible de lire la frame")
+            break
+        
+        # Flip horizontal pour effet miroir
+        frame = cv2.flip(frame, 1)
+        
+        # Appliquer le face swap si un visage source est chargé
+        if app_state["source_face"] is not None:
+            frame = process_frame_with_swap(frame, app_state["source_face"])
+        
+        # Calcul et affichage du FPS
+        frame_count += 1
+        if time.time() - fps_time >= 1.0:
+            fps = frame_count
+            frame_count = 0
+            fps_time = time.time()
+        
+        if app_state["options"].get("show_fps", False):
+            cv2.putText(frame, f"FPS: {fps}", (10, 30), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        
+        # Encoder en JPEG
+        ret, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        if not ret:
+            continue
+        
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+    
+    release_camera()
 
 # ============================================================
 # Routes principales
@@ -68,6 +213,17 @@ def serve_css(filename):
     """Servir les fichiers CSS"""
     return send_from_directory(os.path.join(STATIC_DIR, 'css'), filename)
 
+@app.route('/video_feed')
+def video_feed():
+    """Endpoint de streaming vidéo"""
+    if not app_state["is_running"]:
+        return "Streaming non démarré", 503
+    
+    return Response(
+        generate_frames(),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
+
 # ============================================================
 # API Endpoints
 # ============================================================
@@ -83,43 +239,66 @@ def api_select_face():
     
     app_state["selected_player"] = player_id
     
-    # TODO: Intégrer avec le module core
-    # from core import globals
-    # globals.source_path = os.path.join(FACES_DIR, f"{player_id}.png")
-    
-    return jsonify({
-        "success": True,
-        "player": player_id,
-        "message": f"Visage {player_id} sélectionné"
-    })
+    # Charger le visage source
+    source_face = load_source_face(player_id)
+    if source_face is not None:
+        app_state["source_face"] = source_face
+        return jsonify({
+            "success": True,
+            "player": player_id,
+            "message": f"Visage {player_id} chargé et prêt"
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": f"Impossible de charger le visage {player_id}"
+        }), 400
 
 @app.route('/api/start', methods=['POST'])
 def api_start():
     """Démarrer le deepfake"""
-    data = request.get_json()
-    
     if not app_state["selected_player"]:
         return jsonify({"success": False, "error": "Aucun visage sélectionné"}), 400
     
-    app_state["is_running"] = True
+    if app_state["source_face"] is None:
+        # Tenter de recharger le visage
+        source_face = load_source_face(app_state["selected_player"])
+        if source_face is None:
+            return jsonify({"success": False, "error": "Impossible de charger le visage source"}), 400
+        app_state["source_face"] = source_face
+    
+    # Mettre à jour les options
+    data = request.get_json() or {}
     if data.get('options'):
         app_state["options"].update(data['options'])
     
-    # TODO: Démarrer le traitement deepfake
-    # from core.processors.frame.face_swapper import process_frame
+    # Mettre à jour les globals
+    import core.globals
+    core.globals.many_faces = app_state["options"].get("many_faces", False)
+    core.globals.mouth_mask = app_state["options"].get("mouth_mask", False)
+    core.globals.show_fps = app_state["options"].get("show_fps", False)
+    
+    app_state["is_running"] = True
+    
+    logger.info(f"DeepFake démarré avec visage: {app_state['selected_player']}")
     
     return jsonify({
         "success": True,
         "message": "DeepFake démarré",
-        "state": app_state
+        "state": {
+            "selected_player": app_state["selected_player"],
+            "is_running": app_state["is_running"],
+            "options": app_state["options"]
+        }
     })
 
 @app.route('/api/stop', methods=['POST'])
 def api_stop():
     """Arrêter le deepfake"""
     app_state["is_running"] = False
+    release_camera()
     
-    # TODO: Arrêter le traitement deepfake
+    logger.info("DeepFake arrêté")
     
     return jsonify({
         "success": True,
@@ -133,25 +312,45 @@ def api_option():
     option = data.get('option')
     value = data.get('value')
     
-    if option not in app_state["options"]:
+    # Mapping des noms d'options frontend -> backend
+    option_map = {
+        "mouthMask": "mouth_mask",
+        "faceEnhancer": "face_enhancer", 
+        "showFps": "show_fps",
+        "manyFaces": "many_faces"
+    }
+    
+    backend_option = option_map.get(option, option)
+    
+    if backend_option not in app_state["options"]:
         return jsonify({"success": False, "error": f"Option inconnue: {option}"}), 400
     
-    app_state["options"][option] = value
+    app_state["options"][backend_option] = value
     
-    # TODO: Mettre à jour les options dans le module core
-    # from core import globals
-    # setattr(globals, option, value)
+    # Mettre à jour les globals si nécessaire
+    import core.globals
+    if backend_option == "many_faces":
+        core.globals.many_faces = value
+    elif backend_option == "mouth_mask":
+        core.globals.mouth_mask = value
+    
+    logger.info(f"Option mise à jour: {backend_option} = {value}")
     
     return jsonify({
         "success": True,
-        "option": option,
+        "option": backend_option,
         "value": value
     })
 
 @app.route('/api/status')
 def api_status():
     """Obtenir le statut actuel"""
-    return jsonify(app_state)
+    return jsonify({
+        "selected_player": app_state["selected_player"],
+        "is_running": app_state["is_running"],
+        "options": app_state["options"],
+        "face_loaded": app_state["source_face"] is not None
+    })
 
 @app.route('/api/players')
 def api_players():
@@ -168,16 +367,12 @@ def api_players():
 def get_available_cameras():
     """Obtenir la liste des caméras disponibles"""
     cameras = []
-    try:
-        import cv2
-        for i in range(5):
-            cap = cv2.VideoCapture(i)
-            if cap.isOpened():
-                cameras.append({"id": str(i), "name": f"Caméra {i + 1}"})
-                cap.release()
-    except ImportError:
-        cameras = [{"id": "0", "name": "Caméra par défaut"}]
-    return cameras
+    for i in range(5):
+        cap = cv2.VideoCapture(i)
+        if cap.isOpened():
+            cameras.append({"id": str(i), "name": f"Caméra {i + 1}"})
+            cap.release()
+    return cameras if cameras else [{"id": "0", "name": "Caméra par défaut"}]
 
 # ============================================================
 # Point d'entrée
@@ -200,10 +395,13 @@ def main():
     ╚══════════════════════════════════════════════════════════════╝
     """)
     
+    # Initialiser les modules IA
+    init_ai_modules()
+    
     app.run(
         host=FLASK_CONFIG['HOST'],
         port=FLASK_CONFIG['PORT'],
-        debug=FLASK_CONFIG['DEBUG'],
+        debug=False,  # Désactiver debug pour éviter les problèmes avec la caméra
         threaded=True
     )
 
