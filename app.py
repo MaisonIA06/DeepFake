@@ -128,10 +128,11 @@ def process_frame_with_swap(frame, source_face):
         # Appliquer l'enhancer si activé
         if app_state["options"].get("face_enhancer", False):
             try:
-                from core.processors.frame.face_enhancer import process_frame_v2
-                processed = process_frame_v2(processed)
+                from core.processors.frame.face_enhancer import process_frame_v2, is_available
+                if is_available():
+                    processed = process_frame_v2(processed)
             except Exception as e:
-                logger.warning(f"Face enhancer non disponible: {e}")
+                pass  # Face enhancer non disponible, continuer sans
         
         return processed
     except Exception as e:

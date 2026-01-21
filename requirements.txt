@@ -17,7 +17,7 @@ numpy>=1.24.0
 # Deep Learning
 # ============================================================
 torch>=2.0.0
-torchvision>=0.15.0
+torchvision>=0.16.2
 onnxruntime-gpu>=1.15.0  # Pour GPU NVIDIA (CUDA)
 # onnxruntime>=1.15.0    # Alternative CPU uniquement
 
