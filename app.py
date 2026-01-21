@@ -55,12 +55,65 @@ app_state = {
 # Initialisation des modules IA
 # ============================================================
 
+def check_gpu_availability():
+    """Vérifie la disponibilité du GPU"""
+    gpu_info = {
+        "cuda_available": False,
+        "cudnn_available": False,
+        "gpu_name": None,
+        "onnx_providers": []
+    }
+    
+    # Vérifier PyTorch CUDA
+    try:
+        import torch
+        gpu_info["cuda_available"] = torch.cuda.is_available()
+        if gpu_info["cuda_available"]:
+            gpu_info["gpu_name"] = torch.cuda.get_device_name(0)
+            gpu_info["cudnn_available"] = torch.backends.cudnn.is_available()
+    except Exception:
+        pass
+    
+    # Vérifier ONNX Runtime providers
+    try:
+        import onnxruntime as ort
+        gpu_info["onnx_providers"] = ort.get_available_providers()
+    except Exception:
+        pass
+    
+    return gpu_info
+
 def init_ai_modules():
     """Initialise les modules d'IA au démarrage"""
     try:
         import core.globals
-        # Configuration des execution providers
-        core.globals.execution_providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+        
+        # Vérifier le GPU
+        gpu_info = check_gpu_availability()
+        
+        print("\n" + "="*60)
+        print("🖥️  CONFIGURATION GPU")
+        print("="*60)
+        
+        if gpu_info["cuda_available"]:
+            print(f"✅ CUDA disponible: {gpu_info['gpu_name']}")
+            print(f"✅ cuDNN disponible: {gpu_info['cudnn_available']}")
+        else:
+            print("❌ CUDA non disponible - Mode CPU")
+            print("   Pour activer le GPU, installez:")
+            print("   - CUDA Toolkit 12.x")
+            print("   - cuDNN 9.x (sudo apt install libcudnn9-cuda-12)")
+        
+        print(f"📦 ONNX Providers: {gpu_info['onnx_providers']}")
+        print("="*60 + "\n")
+        
+        # Configuration des execution providers selon disponibilité
+        if 'CUDAExecutionProvider' in gpu_info['onnx_providers']:
+            core.globals.execution_providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+            logger.info("Mode GPU activé (CUDA)")
+        else:
+            core.globals.execution_providers = ['CPUExecutionProvider']
+            logger.info("Mode CPU activé")
         
         logger.info("Modules IA initialisés avec succès")
         return True
