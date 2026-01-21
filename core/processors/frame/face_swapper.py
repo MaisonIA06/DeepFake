@@ -23,12 +23,18 @@ def get_face_swapper() -> Any:
     with THREAD_LOCK:
         if FACE_SWAPPER is None:
             model_path = os.path.join(models_dir, "inswapper_128_fp16.onnx")
+            logging.info(f"Chargement du modèle face swapper: {model_path}")
             if not os.path.exists(model_path):
-                logging.error(f"Model not found: {model_path}")
+                logging.error(f"❌ Model not found: {model_path}")
                 return None
-            FACE_SWAPPER = insightface.model_zoo.get_model(
-                model_path, providers=core.globals.execution_providers
-            )
+            try:
+                FACE_SWAPPER = insightface.model_zoo.get_model(
+                    model_path, providers=core.globals.execution_providers
+                )
+                logging.info(f"✅ Face swapper chargé avec succès")
+            except Exception as e:
+                logging.error(f"❌ Erreur chargement face swapper: {e}")
+                return None
     return FACE_SWAPPER
 
 
@@ -36,13 +42,16 @@ def swap_face(source_face: Any, target_face: Any, temp_frame: np.ndarray) -> np.
     """Effectue le swap de visage entre source et target"""
     face_swapper = get_face_swapper()
     if face_swapper is None:
+        logging.warning("Face swapper non disponible, retour frame originale")
         return temp_frame
 
     try:
+        logging.debug(f"Swap en cours - Frame shape: {temp_frame.shape}")
         # Apply the face swap
         swapped_frame = face_swapper.get(
             temp_frame, target_face, source_face, paste_back=True
         )
+        logging.debug(f"Swap effectué - Result shape: {swapped_frame.shape}")
 
         if core.globals.mouth_mask:
             # Create a mask for the target face
