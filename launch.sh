@@ -59,39 +59,33 @@ wait_for_server() {
     return 1
 }
 
-# Fonction pour ouvrir le navigateur en plein écran
+# Fonction pour ouvrir le navigateur en plein écran (détaché du script)
 open_browser() {
     echo -e "${GREEN}🌐 Ouverture du navigateur en plein écran...${NC}"
     
     # Essayer différents navigateurs (kiosk mode = plein écran sans barre)
+    # Utiliser nohup et disown pour détacher complètement le navigateur
     if command -v firefox &> /dev/null; then
-        firefox --kiosk "$APP_URL" &
+        nohup firefox --kiosk "$APP_URL" > /dev/null 2>&1 &
+        disown
         echo -e "${GREEN}✅ Firefox ouvert en mode kiosk${NC}"
     elif command -v chromium-browser &> /dev/null; then
-        chromium-browser --kiosk --disable-infobars --disable-session-crashed-bubble "$APP_URL" &
+        nohup chromium-browser --kiosk --disable-infobars --disable-session-crashed-bubble "$APP_URL" > /dev/null 2>&1 &
+        disown
         echo -e "${GREEN}✅ Chromium ouvert en mode kiosk${NC}"
     elif command -v google-chrome &> /dev/null; then
-        google-chrome --kiosk --disable-infobars --disable-session-crashed-bubble "$APP_URL" &
+        nohup google-chrome --kiosk --disable-infobars --disable-session-crashed-bubble "$APP_URL" > /dev/null 2>&1 &
+        disown
         echo -e "${GREEN}✅ Chrome ouvert en mode kiosk${NC}"
     elif command -v xdg-open &> /dev/null; then
-        xdg-open "$APP_URL" &
+        nohup xdg-open "$APP_URL" > /dev/null 2>&1 &
+        disown
         echo -e "${YELLOW}⚠️  Navigateur ouvert - Appuyez sur F11 pour le plein écran${NC}"
     else
         echo -e "${YELLOW}⚠️  Aucun navigateur trouvé. Ouvrez manuellement: $APP_URL${NC}"
         notify-send "DeepFake MIA" "Ouvrez $APP_URL dans votre navigateur" 2>/dev/null
     fi
 }
-
-# Fonction de nettoyage à la fermeture
-cleanup() {
-    echo -e "\n${YELLOW}🛑 Arrêt de l'application...${NC}"
-    # Tuer les processus enfants
-    jobs -p | xargs -r kill 2>/dev/null
-    exit 0
-}
-
-# Capturer Ctrl+C et fermeture
-trap cleanup SIGINT SIGTERM EXIT
 
 # Aller dans le répertoire du projet
 cd "$SCRIPT_DIR"
@@ -104,10 +98,20 @@ FLASK_PID=$!
 # Attendre que le serveur soit prêt puis ouvrir le navigateur
 if wait_for_server; then
     open_browser
+    # Notification de démarrage
+    notify-send "DeepFake MIA" "Application démarrée sur $APP_URL" --icon=applications-multimedia 2>/dev/null
 fi
 
-# Notification de démarrage
-notify-send "DeepFake MIA" "Application démarrée sur $APP_URL" --icon=applications-multimedia 2>/dev/null
+# Fonction de nettoyage (uniquement pour Flask, pas le navigateur)
+cleanup() {
+    echo -e "\n${YELLOW}🛑 Arrêt du serveur Flask...${NC}"
+    kill $FLASK_PID 2>/dev/null
+    exit 0
+}
 
-# Attendre que Flask se termine
+# Capturer Ctrl+C
+trap cleanup SIGINT SIGTERM
+
+# Attendre que Flask se termine (garde le script actif)
+echo -e "${BLUE}📍 Serveur actif. Fermez Firefox puis appuyez sur Ctrl+C pour arrêter.${NC}"
 wait $FLASK_PID
