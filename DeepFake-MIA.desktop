@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=DeepFake MIA
+Comment=Face Swap en temps réel - La Maison de l'IA
+Icon=/home/mia/Bureau/DeepFake/static/images/MIA_Blanc.png
+Exec=/home/mia/Bureau/DeepFake/launch.sh
+Path=/home/mia/Bureau/DeepFake
+Terminal=false
+Categories=Graphics;Video;
+Keywords=deepfake;faceswap;ia;ai;
+StartupNotify=true
