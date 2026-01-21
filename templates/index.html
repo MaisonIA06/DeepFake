@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepFake - MIA La Maison de l'IA</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('serve_css', filename='style.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('serve_image', filename='MIA_Blanc.png') }}">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header avec Logo -->
+        <header class="header">
+            <div class="logo-container">
+                <img src="{{ url_for('serve_image', filename='MIA_Blanc.png') }}" alt="MIA - La Maison de l'IA" class="logo">
+                <div>
+                    <h1 class="app-title">DeepFake</h1>
+                    <p class="app-subtitle">Face Swap en temps réel</p>
+                </div>
+            </div>
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span class="status-text" id="statusText">Prêt</span>
+            </div>
+        </header>
+
+        <!-- Contenu Principal -->
+        <main class="main-content">
+            <!-- Panel Gauche - Joueurs 1-6 -->
+            <aside class="panel">
+                <h2 class="panel-title">Sélection Visage</h2>
+                <div class="player-grid" id="leftGrid">
+                    {% for player in players_left %}
+                    <div class="player-card" data-player="{{ player.id }}" tabindex="0" role="button">
+                        <img src="{{ url_for('serve_face', filename=player.id + '.png') }}" 
+                             alt="{{ player.name }}" 
+                             class="player-avatar">
+                        <p class="player-name">{{ player.name }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </aside>
+
+            <!-- Centre - Caméra et Contrôles -->
+            <section class="center-panel">
+                <div class="camera-container">
+                    <div class="camera-feed" id="cameraFeed">
+                        <video id="videoElement" autoplay playsinline></video>
+                        <canvas id="outputCanvas" style="display: none;"></canvas>
+                        <div class="camera-placeholder" id="placeholder">
+                            <div class="camera-placeholder-icon">🎥</div>
+                            <p class="camera-placeholder-text">Cliquez sur "Démarrer" pour activer la caméra</p>
+                        </div>
+                    </div>
+                    
+                    <div class="controls">
+                        <button class="btn btn-primary" id="startBtn">
+                            ▶ Démarrer DeepFake
+                        </button>
+                        <button class="btn btn-danger" id="stopBtn" disabled>
+                            ⏹ Arrêter
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Options -->
+                <div class="options-container">
+                    <h3 class="options-title">Options</h3>
+                    <div class="option-group">
+                        <div class="option-item">
+                            <span class="option-label">Mouth Mask</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="mouthMask">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="option-item">
+                            <span class="option-label">Face Enhancer</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="faceEnhancer">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="option-item">
+                            <span class="option-label">Show FPS</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="showFps">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="option-item">
+                            <span class="option-label">Many Faces</span>
+                            <label class="toggle">
+                                <input type="checkbox" id="manyFaces">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Panel Droit - Joueurs 7-12 -->
+            <aside class="panel">
+                <h2 class="panel-title">Sélection Visage</h2>
+                <div class="player-grid" id="rightGrid">
+                    {% for player in players_right %}
+                    <div class="player-card" data-player="{{ player.id }}" tabindex="0" role="button">
+                        <img src="{{ url_for('serve_face', filename=player.id + '.png') }}" 
+                             alt="{{ player.name }}" 
+                             class="player-avatar">
+                        <p class="player-name">{{ player.name }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </aside>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p class="disclaimer">
+                <strong>Attention</strong> : Cette application utilise la technologie de face swap.
+                Son utilisation doit se faire dans le respect de la vie privée et avec le consentement des personnes concernées.
+                Projet développé par <strong>MIA - La Maison de l'IA</strong>.
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        // ============================================================
+        // DEEPFAKE MIA - JavaScript
+        // Interface Web pour Face Swap
+        // ============================================================
+
+        // -------- Configuration --------
+        const API_BASE = '';
+        let selectedPlayer = null;
+        let isRunning = false;
+        let videoStream = null;
+
+        // -------- Éléments DOM --------
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const videoElement = document.getElementById('videoElement');
+        const placeholder = document.getElementById('placeholder');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        // -------- Initialisation --------
+        document.addEventListener('DOMContentLoaded', function() {
+            initPlayerCards();
+            initControls();
+            initOptions();
+        });
+
+        // -------- Gestion des Joueurs --------
+        function initPlayerCards() {
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.addEventListener('click', () => selectPlayer(card));
+                card.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectPlayer(card);
+                    }
+                });
+            });
+        }
+
+        function selectPlayer(card) {
+            // Retirer la sélection précédente
+            document.querySelectorAll('.player-card').forEach(c => {
+                c.classList.remove('selected');
+            });
+            
+            // Sélectionner le nouveau joueur
+            card.classList.add('selected');
+            selectedPlayer = card.dataset.player;
+            
+            // Envoyer au serveur
+            fetch(`${API_BASE}/api/select_face`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ player: selectedPlayer })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Face sélectionnée:', selectedPlayer);
+                updateStatus('Visage sélectionné: ' + selectedPlayer, 'success');
+            })
+            .catch(err => {
+                console.error('Erreur:', err);
+            });
+        }
+
+        // -------- Gestion Caméra --------
+        async function startCamera() {
+            try {
+                const constraints = {
+                    video: true,
+                    audio: false
+                };
+                
+                videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                videoElement.srcObject = videoStream;
+                placeholder.style.display = 'none';
+                videoElement.style.display = 'block';
+                
+                return true;
+            } catch (err) {
+                console.error('Erreur caméra:', err);
+                updateStatus('Erreur: ' + err.message, 'error');
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            videoElement.style.display = 'none';
+            placeholder.style.display = 'flex';
+        }
+
+        // -------- Contrôles --------
+        function initControls() {
+            startBtn.addEventListener('click', startDeepfake);
+            stopBtn.addEventListener('click', stopDeepfake);
+        }
+
+        async function startDeepfake() {
+            if (!selectedPlayer) {
+                updateStatus('Veuillez sélectionner un visage', 'warning');
+                return;
+            }
+            
+            const cameraStarted = await startCamera();
+            if (!cameraStarted) return;
+            
+            isRunning = true;
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            
+            updateStatus('DeepFake en cours...', 'running');
+            
+            // Notifier le backend
+            fetch(`${API_BASE}/api/start`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    player: selectedPlayer,
+                    camera: 'default',
+                    options: getOptions()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('DeepFake démarré:', data);
+            })
+            .catch(err => console.error('Erreur:', err));
+        }
+
+        function stopDeepfake() {
+            isRunning = false;
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            
+            stopCamera();
+            updateStatus('Arrêté', 'stopped');
+            
+            // Notifier le backend
+            fetch(`${API_BASE}/api/stop`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => console.log('DeepFake arrêté:', data))
+                .catch(err => console.error('Erreur:', err));
+        }
+
+        // -------- Options --------
+        function initOptions() {
+            const options = ['mouthMask', 'faceEnhancer', 'showFps', 'manyFaces'];
+            options.forEach(opt => {
+                const el = document.getElementById(opt);
+                if (el) {
+                    el.addEventListener('change', () => updateOption(opt, el.checked));
+                }
+            });
+        }
+
+        function getOptions() {
+            return {
+                mouthMask: document.getElementById('mouthMask')?.checked || false,
+                faceEnhancer: document.getElementById('faceEnhancer')?.checked || false,
+                showFps: document.getElementById('showFps')?.checked || false,
+                manyFaces: document.getElementById('manyFaces')?.checked || false
+            };
+        }
+
+        function updateOption(option, value) {
+            fetch(`${API_BASE}/api/option`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ option, value })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Option mise à jour:', option, value))
+            .catch(err => console.error('Erreur:', err));
+        }
+
+        // -------- Status --------
+        function updateStatus(message, type = 'info') {
+            statusText.textContent = message;
+            statusDot.classList.remove('offline');
+            
+            switch(type) {
+                case 'error':
+                    statusDot.style.background = '#f44336';
+                    statusDot.classList.add('offline');
+                    break;
+                case 'warning':
+                    statusDot.style.background = '#ff9800';
+                    break;
+                case 'running':
+                    statusDot.style.background = '#4CAF50';
+                    break;
+                case 'stopped':
+                    statusDot.style.background = '#9e9e9e';
+                    break;
+                default:
+                    statusDot.style.background = '#4CAF50';
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,117 @@
+# ============================================================
+# DeepFake MIA - .gitignore
+# ============================================================
+
+# ============================================================
+# Python
+# ============================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ============================================================
+# Environnement virtuel
+# ============================================================
+venv/
+env/
+ENV/
+.venv/
+.env
+
+# ============================================================
+# IDE / Éditeurs
+# ============================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# ============================================================
+# Modèles IA (fichiers volumineux)
+# ============================================================
+models/*.onnx
+models/*.pth
+models/*.pt
+models/*.bin
+models/*.safetensors
+!models/instructions.txt
+
+gfpgan/weights/*.pth
+gfpgan/weights/*.pt
+
+# Alternative: décommenter pour inclure les modèles
+# !models/inswapper_128_fp16.onnx
+# !models/GFPGANv1.4.pth
+
+# ============================================================
+# Fichiers temporaires
+# ============================================================
+*.tmp
+*.temp
+*.log
+*.bak
+.DS_Store
+Thumbs.db
+
+# ============================================================
+# Données utilisateur / Output
+# ============================================================
+output/
+outputs/
+temp/
+tmp/
+uploads/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# ============================================================
+# Cache
+# ============================================================
+.cache/
+*.cache
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ============================================================
+# Tests
+# ============================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# ============================================================
+# Jupyter Notebooks
+# ============================================================
+.ipynb_checkpoints/
+*.ipynb
+
+# ============================================================
+# Secrets / Configuration locale
+# ============================================================
+.env.local
+.env.production
+secrets.py
+config.local.py
