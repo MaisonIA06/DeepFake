@@ -83,8 +83,8 @@ DeepFake-MIA/
 
 1. **Cloner le projet**
 ```bash
-git clone https://github.com/votre-repo/deepfake-mia.git
-cd deepfake-mia
+git clone https://github.com/MaisonIA06/DeepFake.git
+cd DeepFake
 ```
 
 2. **Créer un environnement virtuel**
@@ -103,8 +103,8 @@ pip install -r requirements.txt
 4. **Télécharger les modèles** (si non inclus)
 
 Placez les fichiers suivants dans le dossier `models/` :
-- `inswapper_128_fp16.onnx` - [Télécharger](https://huggingface.co/hacksider/deep-live-cam)
-- `GFPGANv1.4.pth` - [Télécharger](https://github.com/TencentARC/GFPGAN/releases)
+- `inswapper_128_fp16.onnx` - [Télécharger](https://https://huggingface.co/ninjawick/webui-faceswap-unlocked/blob/main/inswapper_128_fp16.onnx)
+- `GFPGANv1.4.pth` - [Télécharger](https://https://huggingface.co/gmk123/GFPGAN/blob/main/GFPGANv1.4.pth)
 
 ---
 
