@@ -91,9 +91,10 @@ body::before {
 .app-container {
     position: relative;
     z-index: 1;
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 }
 
 /* -------- Header avec Logo -------- */
@@ -101,11 +102,12 @@ body::before {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 40px;
+    padding: 12px 30px;
     background: rgba(107, 61, 58, 0.08);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
 }
 
 .logo-container {
@@ -115,7 +117,7 @@ body::before {
 }
 
 .logo {
-    height: 55px;
+    height: 45px;
     filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
     transition: var(--transition-smooth);
 }
@@ -181,46 +183,55 @@ body::before {
 .main-content {
     flex: 1;
     display: grid;
-    grid-template-columns: 1fr 2fr 1fr;
-    gap: 30px;
-    padding: 30px 40px;
+    grid-template-columns: minmax(220px, 1fr) minmax(400px, 2fr) minmax(220px, 1fr);
+    gap: 20px;
+    padding: 15px 25px;
     max-width: 1800px;
     margin: 0 auto;
     width: 100%;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* -------- Panels (Gauche & Droite) -------- */
 .panel {
     background: rgba(26, 58, 92, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
-    padding: 24px;
+    border-radius: 20px;
+    padding: 16px;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    height: fit-content;
-    position: sticky;
-    top: 30px;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .panel-title {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: var(--text-primary);
     text-transform: uppercase;
     letter-spacing: 1.5px;
     text-align: center;
-    margin: 0 0 20px 0;
-    padding-bottom: 12px;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
 }
 
 /* -------- Player Grid -------- */
 .player-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 14px;
+    gap: 10px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 4px;
 }
 
 /* -------- Player Card -------- */
@@ -228,11 +239,10 @@ body::before {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 14px 10px;
+    padding: 0;
     background: rgba(26, 58, 92, 0.5);
     border: 2px solid rgba(255, 255, 255, 0.15);
-    border-radius: 16px;
+    border-radius: 12px;
     cursor: pointer;
     transition: var(--transition-smooth);
     position: relative;
@@ -265,72 +275,89 @@ body::before {
 }
 
 .player-card.selected {
-    background: var(--mia-terracotta);
     border-color: var(--mia-terracotta-light);
     box-shadow: 0 0 30px rgba(181, 96, 90, 0.5);
+}
+
+.player-card.selected .player-name {
+    background: linear-gradient(to top, rgba(181, 96, 90, 0.95) 0%, rgba(181, 96, 90, 0.7) 60%, transparent 100%);
 }
 
 .player-card.selected::after {
     content: '✓';
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 22px;
-    height: 22px;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
     background: white;
     color: var(--mia-terracotta);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: bold;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    z-index: 2;
 }
 
 .player-avatar {
-    width: 90px;
-    height: 90px;
-    border-radius: 14px;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 10px 10px 0 0;
     object-fit: cover;
-    border: 2px solid var(--border-subtle);
+    border: none;
     transition: var(--transition-smooth);
 }
 
 .player-card:hover .player-avatar {
     transform: scale(1.08);
-    border-color: var(--selection-border);
 }
 
-.player-card.selected .player-avatar {
-    border-color: white;
+.player-card:hover .player-name {
+    background: linear-gradient(to top, rgba(181, 96, 90, 0.95) 0%, rgba(181, 96, 90, 0.6) 60%, transparent 100%);
 }
 
 .player-name {
-    font-size: 0.8rem;
+    width: 100%;
+    padding: 10px 6px 8px;
+    font-size: 0.75rem;
     font-weight: 700;
     color: #ffffff;
     text-align: center;
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    background: linear-gradient(to top, rgba(26, 58, 92, 0.95) 0%, rgba(26, 58, 92, 0.7) 60%, transparent 100%);
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 }
 
 /* -------- Center Panel - Camera -------- */
 .center-panel {
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 15px;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .camera-container {
     background: rgba(26, 58, 92, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
-    padding: 24px;
+    border-radius: 20px;
+    padding: 16px;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
 }
 
 .camera-header {
@@ -373,9 +400,10 @@ body::before {
 .camera-feed {
     position: relative;
     width: 100%;
-    aspect-ratio: 4/3;
+    flex: 1;
+    min-height: 200px;
     background: var(--mia-navy-dark);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
     border: 3px solid var(--mia-navy);
 }
@@ -409,24 +437,25 @@ body::before {
 /* Controls */
 .controls {
     display: flex;
-    gap: 16px;
-    margin-top: 20px;
+    gap: 12px;
+    margin-top: 12px;
+    flex-shrink: 0;
 }
 
 .btn {
     flex: 1;
-    padding: 18px 24px;
+    padding: 14px 20px;
     border: none;
-    border-radius: 16px;
+    border-radius: 12px;
     font-family: inherit;
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
     transition: var(--transition-smooth);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .btn-primary {
@@ -475,36 +504,37 @@ body::before {
 .options-container {
     background: rgba(26, 58, 92, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 24px;
-    padding: 24px;
+    border-radius: 16px;
+    padding: 14px 16px;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
 }
 
 .options-title {
-    font-size: 1.1rem;
+    font-size: 0.9rem;
     font-weight: 700;
     color: #ffffff;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin: 0 0 20px 0;
+    margin: 0 0 12px 0;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
 .option-group {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
 }
 
 .option-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 14px 18px;
+    padding: 10px 12px;
     background: rgba(26, 58, 92, 0.15);
-    border-radius: 12px;
+    border-radius: 10px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: var(--transition-fast);
 }
@@ -514,10 +544,11 @@ body::before {
 }
 
 .option-label {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     font-weight: 600;
     color: #ffffff;
     text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    white-space: nowrap;
 }
 
 /* Toggle Switch */
@@ -569,18 +600,19 @@ body::before {
 
 /* -------- Footer -------- */
 .footer {
-    padding: 20px 40px;
+    padding: 10px 30px;
     background: rgba(107, 61, 58, 0.08);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     text-align: center;
+    flex-shrink: 0;
 }
 
 .disclaimer {
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
-    line-height: 1.6;
+    line-height: 1.4;
     max-width: 800px;
     margin: 0 auto;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
@@ -661,99 +693,118 @@ body::before {
 @media (min-width: 1800px) {
     .main-content {
         max-width: 2000px;
-    }
-    
-    .player-avatar {
-        width: 110px;
-        height: 110px;
-    }
-    
-    .camera-feed {
-        aspect-ratio: 16/10;
+        grid-template-columns: minmax(280px, 1fr) minmax(500px, 2fr) minmax(280px, 1fr);
     }
 }
 
 /* -------- Responsive - Écrans Moyens -------- */
 @media (max-width: 1400px) {
     .main-content {
-        grid-template-columns: 1fr 2.5fr 1fr;
-        gap: 20px;
-        padding: 20px 30px;
-    }
-    
-    .player-avatar {
-        width: 75px;
-        height: 75px;
+        grid-template-columns: minmax(200px, 1fr) minmax(350px, 2.5fr) minmax(200px, 1fr);
+        gap: 15px;
+        padding: 12px 20px;
     }
     
     .player-name {
-        font-size: 0.7rem;
+        font-size: 0.65rem;
     }
     
     .panel {
-        padding: 18px;
+        padding: 12px;
     }
 }
 
 @media (max-width: 1200px) {
     .main-content {
-        grid-template-columns: 250px 1fr 250px;
+        grid-template-columns: 200px 1fr 200px;
+        gap: 12px;
     }
     
     .player-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
     }
     
-    .player-card {
-        flex-direction: row;
-        justify-content: flex-start;
-        padding: 10px 14px;
+    .player-name {
+        font-size: 0.6rem;
+        padding: 8px 4px 6px;
     }
     
-    .player-avatar {
-        width: 50px;
-        height: 50px;
+    .option-group {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .option-item {
+        padding: 8px 10px;
+    }
+    
+    .option-label {
+        font-size: 0.75rem;
     }
 }
 
 /* -------- Responsive - Tablettes -------- */
 @media (max-width: 1024px) {
+    .app-container {
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+    }
+    
     .main-content {
         grid-template-columns: 1fr;
-        gap: 20px;
-        padding: 20px;
+        gap: 15px;
+        padding: 15px;
+        overflow: visible;
     }
     
     .panel {
         position: relative;
         top: auto;
+        overflow: visible;
     }
     
     .player-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(6, 1fr);
+        overflow: visible;
     }
     
     .player-card {
         flex-direction: column;
     }
     
-    .player-avatar {
-        width: 70px;
-        height: 70px;
+    .player-name {
+        font-size: 0.65rem;
+        padding: 8px 4px 6px;
     }
     
     .center-panel {
         order: -1;
+        overflow: visible;
+    }
+    
+    .camera-container {
+        flex: none;
+    }
+    
+    .camera-feed {
+        flex: none;
+        height: 300px;
     }
     
     .header {
-        padding: 16px 20px;
+        padding: 10px 15px;
         flex-wrap: wrap;
-        gap: 16px;
+        gap: 12px;
     }
     
     .app-title {
-        font-size: 1.6rem;
+        font-size: 1.4rem;
+    }
+    
+    .option-group {
+        grid-template-columns: repeat(4, 1fr);
     }
 }
 
@@ -762,62 +813,116 @@ body::before {
     .header {
         flex-direction: column;
         text-align: center;
+        padding: 8px 12px;
     }
     
     .logo-container {
-        flex-direction: column;
+        flex-direction: row;
         gap: 10px;
     }
     
     .logo {
-        height: 45px;
+        height: 35px;
     }
     
     .app-title {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
+    }
+    
+    .app-subtitle {
+        font-size: 0.75rem;
     }
     
     .main-content {
-        padding: 15px;
-        gap: 15px;
+        padding: 10px;
+        gap: 12px;
     }
     
     .player-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-    }
-    
-    .player-avatar {
-        width: 60px;
-        height: 60px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
     }
     
     .player-name {
-        font-size: 0.65rem;
+        font-size: 0.55rem;
+        padding: 6px 3px 5px;
     }
     
     .panel,
     .camera-container,
     .options-container {
-        padding: 16px;
-        border-radius: 18px;
+        padding: 12px;
+        border-radius: 14px;
+    }
+    
+    .panel-title,
+    .options-title {
+        font-size: 0.8rem;
+        margin-bottom: 10px;
     }
     
     .controls {
-        flex-direction: column;
+        flex-direction: row;
+        gap: 8px;
     }
     
     .btn {
-        padding: 16px;
-        font-size: 1rem;
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+    
+    .option-group {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .option-item {
+        padding: 8px 10px;
+    }
+    
+    .option-label {
+        font-size: 0.7rem;
+    }
+    
+    .toggle {
+        width: 44px;
+        height: 24px;
+    }
+    
+    .toggle-slider::before {
+        height: 16px;
+        width: 16px;
+    }
+    
+    .toggle input:checked + .toggle-slider::before {
+        transform: translateX(20px);
     }
     
     .footer {
-        padding: 16px 20px;
+        padding: 8px 12px;
     }
     
     .disclaimer {
-        font-size: 0.75rem;
+        font-size: 0.65rem;
+    }
+    
+    .camera-feed {
+        height: 250px;
+    }
+}
+
+/* -------- Responsive - Très petits écrans -------- */
+@media (max-width: 480px) {
+    .player-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .option-group {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .camera-feed {
+        height: 200px;
     }
 }
 
