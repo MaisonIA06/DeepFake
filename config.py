@@ -25,18 +25,8 @@ GFPGAN_WEIGHTS_DIR = os.path.join(BASE_DIR, 'gfpgan', 'weights')
 # ============================================================
 
 PLAYERS = [
-    {"id": "AH-KONG", "name": "Ah-Kong", "position": "left"},
-    {"id": "BARNES", "name": "Barnes", "position": "left"},
-    {"id": "BRIGGS", "name": "Briggs", "position": "left"},
-    {"id": "CASTELNAU", "name": "Castelnau", "position": "left"},
-    {"id": "DULSKI", "name": "Dulski", "position": "left"},
-    {"id": "KEEMINK", "name": "Keemink", "position": "left"},
-    {"id": "KICIAK", "name": "Kiciak", "position": "right"},
-    {"id": "LIBERMAN", "name": "Liberman", "position": "right"},
-    {"id": "MCHENRY", "name": "McHenry", "position": "right"},
-    {"id": "NACK-MINYEM", "name": "Nack-Minyem", "position": "right"},
-    {"id": "NAMBOUE", "name": "Namboue", "position": "right"},
-    {"id": "RAJOHARIVELO", "name": "Rajoharivelo", "position": "right"},
+    {"id": "MBAPPE", "name": "Kylian Mbappé", "position": "left"},
+    {"id": "DESCHAMPS", "name": "Didier Deschamps", "position": "right"},
 ]
 
 PLAYERS_LEFT = [p for p in PLAYERS if p["position"] == "left"]
