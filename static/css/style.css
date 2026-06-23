@@ -183,7 +183,7 @@ body::before {
 .main-content {
     flex: 1;
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) minmax(400px, 2fr) minmax(220px, 1fr);
+    grid-template-columns: minmax(240px, 1fr) minmax(400px, 2.2fr) minmax(240px, 1fr);
     gap: 20px;
     padding: 15px 25px;
     max-width: 1800px;
@@ -225,10 +225,12 @@ body::before {
 /* -------- Player Grid -------- */
 .player-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
     gap: 10px;
     flex: 1;
     min-height: 0;
+    align-content: center;
+    justify-items: center;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 4px;
@@ -250,6 +252,8 @@ body::before {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 260px;
 }
 
 .player-card::before {
@@ -304,7 +308,7 @@ body::before {
 
 .player-avatar {
     width: 100%;
-    aspect-ratio: 1;
+    aspect-ratio: 3 / 4;
     border-radius: 10px 10px 0 0;
     object-fit: cover;
     border: none;
@@ -721,10 +725,10 @@ body::before {
     }
     
     .player-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 1fr;
         gap: 8px;
     }
-    
+
     .player-name {
         font-size: 0.6rem;
         padding: 8px 4px 6px;
@@ -766,7 +770,7 @@ body::before {
     }
     
     .player-grid {
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: 1fr;
         overflow: visible;
     }
     
